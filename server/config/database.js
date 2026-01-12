@@ -1,47 +1,33 @@
 const { Sequelize } = require("sequelize");
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
-  {
-    host: process.env.DB_HOST,
-    dialect: "mysql",
-    logging: process.env.NODE_ENV === "development" ? console.log : false,
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000,
-    },
-  }
-);
+// Use the connection string directly from the environment variable
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+  dialect: "mysql",
+  // filess.io and other cloud providers often require SSL or specific ports
+  // The URI already includes the port (61002)
+  logging: process.env.NODE_ENV === "development" ? console.log : false,
+  pool: {
+    max: 5,
+    min: 0,
+    acquire: 30000,
+    idle: 10000,
+  },
+  dialectOptions: {
+    // Some cloud hosts require this for secure connections
+    connectTimeout: 60000,
+  },
+});
 
-// Auto-create database if not exists
-const initializeDatabase = async () => {
-  const tempSequelize = new Sequelize(
-    "",
-    process.env.DB_USER,
-    process.env.DB_PASSWORD,
-    {
-      host: process.env.DB_HOST,
-      dialect: "mysql",
-      logging: false,
-    }
-  );
-
+const connectDB = async () => {
   try {
-    await tempSequelize.query(
-      `CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME}\`;`
+    await sequelize.authenticate();
+    console.log(
+      "✅ Connection to filess.io MySQL has been established successfully."
     );
-    console.log("✅ Database created/verified");
   } catch (error) {
-    console.error("Error creating database:", error.message);
-  } finally {
-    await tempSequelize.close();
+    console.error("❌ Unable to connect to the database:", error.message);
   }
 };
-
 // Run migrations
 const runMigrations = async () => {
   try {
@@ -129,7 +115,7 @@ const seedData = async () => {
 
 // Main initialization function
 const initDB = async () => {
-  await initializeDatabase();
+  await connectDB();
   await sequelize.authenticate();
   await runMigrations();
   await seedData();
