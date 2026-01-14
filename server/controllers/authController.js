@@ -65,7 +65,7 @@ const register = async (req, res) => {
       token,
       user: {
         id: result,
-        name,
+        username,
         email: email.toLowerCase(),
         phone,
         role: "user",
@@ -152,7 +152,7 @@ const logout = async (req, res) => {
 const getCurrentUser = async (req, res) => {
   try {
     const [users] = await sequelize.query(
-      "SELECT id, name, email, phone, role, created_at FROM users WHERE id = ?",
+      "SELECT id, username, email, phone, role, created_at FROM users WHERE id = ?",
       { replacements: [req.user.id] }
     );
 
