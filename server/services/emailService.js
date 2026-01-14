@@ -1,27 +1,10 @@
 const nodemailer = require("nodemailer");
 const PDFDocument = require("pdfkit");
+import { Resend } from "resend";
 
 class EmailService {
   constructor() {
-    // Log to check if env vars are loaded
-    /*  console.log("📧 Email Service Initializing...");
-    console.log("SMTP_HOST:", process.env.SMTP_HOST);
-    console.log("SMTP_USER:", process.env.SMTP_USER);
-    console.log(
-      "SMTP_PASS:",
-      process.env.SMTP_PASS ? "****" + process.env.SMTP_PASS.slice(-4) : "NOT SET"
-    ); */
-
-    this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "smtp.gmail.com",
-      port: process.env.SMTP_PORT || 587,
-      secure: false,
-      pool: true,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
+    this.resend = new Resend(process.env.RESEND_API_KEY);
   }
 
   // Generate PDF Receipt
@@ -229,8 +212,8 @@ class EmailService {
       </html>
     `;
 
-    await this.transporter.sendMail({
-      from: `"PresetHub" <${process.env.SMTP_USER}>`,
+    await this.resend.emails.send({
+      from: "ankprasad58@gmail.com",
       to,
       subject: `🎉 Your Preset is Ready: ${presetTitle}`,
       html,
@@ -238,7 +221,6 @@ class EmailService {
         {
           filename: `PresetHub-Receipt-${downloadToken.slice(0, 8)}.pdf`,
           content: pdfBuffer,
-          contentType: "application/pdf",
         },
       ],
     });
