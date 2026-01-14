@@ -39,6 +39,7 @@ const runMigrations = async () => {
         email VARCHAR(100) UNIQUE NOT NULL,
         phone VARCHAR(15),
         password VARCHAR(255) NOT NULL,
+        role ENUM('user', 'admin') DEFAULT 'user',
         profile_image VARCHAR(500) DEFAULT 'https://via.placeholder.com/150',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
