@@ -42,7 +42,7 @@ const register = async (req, res) => {
 
     // Create user
     const [result] = await sequelize.query(
-      "INSERT INTO users (username, email, password, phone, role) VALUES (?, ?, ?, ?, 'user')",
+      "INSERT INTO users (username, email, password, phone) VALUES (?, ?, ?, ?, 'user')",
       {
         replacements: [
           username,
@@ -55,7 +55,7 @@ const register = async (req, res) => {
 
     // Generate token
     const token = jwt.sign(
-      { id: result, email: email.toLowerCase(), role: "user" },
+      { id: result, email: email.toLowerCase() },
       process.env.JWT_SECRET,
       { expiresIn: "24h" }
     );
@@ -68,7 +68,6 @@ const register = async (req, res) => {
         username,
         email: email.toLowerCase(),
         phone,
-        role: "user",
       },
     });
   } catch (error) {
@@ -152,7 +151,7 @@ const logout = async (req, res) => {
 const getCurrentUser = async (req, res) => {
   try {
     const [users] = await sequelize.query(
-      "SELECT id, username, email, phone, role, created_at FROM users WHERE id = ?",
+      "SELECT id, username, email, phone, created_at FROM users WHERE id = ?",
       { replacements: [req.user.id] }
     );
 
