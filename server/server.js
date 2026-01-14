@@ -6,27 +6,34 @@ const { testConnection } = require("./config/database");
 const { apiLimiter } = require("./middleware/security");
 
 const app = express();
+app.set("trust proxy", 1);
 
 // Security middleware
 app.use(helmet()); // Security headers
 
 // CORS configuration
-const allowedOrigins = [
-  process.env.ALLOWED_ORIGIN,
-  "http://localhost:3000", // Always allow local dev
-].filter(Boolean); // Removes undefined values if the env var isn't set
+const allowedOriginRegex = [
+  /^http:\/\/localhost:3000$/,
+  /^https:\/\/.*\.netlify\.app$/, // Netlify preview + staging + prod
+  /^https:\/\/marketstation-uat\.netlify\.app$/, // explicit allow (optional)
+];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // allow requests with no origin (like mobile apps or curl requests)
+      console.log("Request Origin:", origin);
+
+      // Allow server-to-server / Postman
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
+      const isAllowed = allowedOriginRegex.some((regex) => regex.test(origin));
+
+      if (isAllowed) {
+        return callback(null, true);
       }
+
+      console.error("❌ Blocked by CORS:", origin);
+      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
