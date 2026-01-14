@@ -2,59 +2,60 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
-const { testConnection } = require("./config/database");
+
+// Import Config & Middleware
+const { initDB } = require("./config/database");
 const { apiLimiter } = require("./middleware/security");
 
 const app = express();
+
+// Set trust proxy (important for Render/Netlify)
 app.set("trust proxy", 1);
 
 // Security middleware
-app.use(helmet()); // Security headers
+app.use(helmet());
 
-// CORS configuration
-const allowedOriginRegex = [
-  /^http:\/\/localhost:3000$/,
-  /^https:\/\/.*\.netlify\.app$/, // Netlify preview + staging + prod
-  /^https:\/\/marketstation-uat\.netlify\.app$/, // explicit allow (optional)
-];
+// --- CORS Configuration ---
+const allowedOrigins = [
+  process.env.ALLOWED_ORIGIN, // https://marketstation-uat.netlify.app
+  "http://localhost:3000",
+  "http://localhost:5173",
+].filter(Boolean);
+
+// Optional: Regex for Netlify branch previews
+const netlifyRegex = /^https:\/\/.*\.netlify\.app$/;
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      console.log("Request Origin:", origin);
-
-      // Allow server-to-server / Postman
+      // Allow server-to-server or Postman
       if (!origin) return callback(null, true);
 
-      const isAllowed = allowedOriginRegex.some((regex) => regex.test(origin));
+      const isAllowed =
+        allowedOrigins.includes(origin) || netlifyRegex.test(origin);
 
       if (isAllowed) {
-        return callback(null, true);
+        callback(null, true);
+      } else {
+        console.error("❌ Blocked by CORS:", origin);
+        callback(new Error("Not allowed by CORS"));
       }
-
-      console.error("❌ Blocked by CORS:", origin);
-      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// Body parser with size limit
+// Body parser
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.options("*", cors());
-// Apply rate limiting to all API routes
-app.use("/api", apiLimiter);
 
-// Request logging (development only)
-if (process.env.NODE_ENV !== "production") {
-  app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-    next();
-  });
-}
+// Handle preflight for all routes
+app.options("*", cors());
+
+// Apply rate limiting
+app.use("/api", apiLimiter);
 
 // Routes
 const authRoutes = require("./routes/auth");
@@ -90,19 +91,22 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
+// --- Start Server & Database ---
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(
-    `📧 Email Service: ${
-      process.env.SMTP_USER ? "Configured" : "Not configured"
-    }`
-  );
-  console.log(
-    `💳 Razorpay: ${
-      process.env.RAZORPAY_KEY_ID ? "Configured" : "Not configured"
-    }`
-  );
-});
+async function startServer() {
+  try {
+    // Corrected: Using initDB as per your import
+    await initDB();
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
+}
+
+startServer();
