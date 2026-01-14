@@ -1,11 +1,8 @@
 const { Sequelize } = require("sequelize");
 
-// Use the connection string directly from the environment variable
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: "mysql",
-  // filess.io and other cloud providers often require SSL or specific ports
-  // The URI already includes the port (61002)
-  logging: process.env.NODE_ENV === "development" ? console.log : false,
+  logging: false,
   pool: {
     max: 5,
     min: 0,
@@ -13,19 +10,22 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
     idle: 10000,
   },
   dialectOptions: {
-    // Some cloud hosts require this for secure connections
+    ssl: {
+      require: true,
+      rejectUnauthorized: false,
+    },
     connectTimeout: 60000,
   },
 });
 
+// ✅ Single connection test
 const connectDB = async () => {
   try {
     await sequelize.authenticate();
-    console.log(
-      "✅ Connection to filess.io MySQL has been established successfully."
-    );
-  } catch (error) {
-    console.error("❌ Unable to connect to the database:", error.message);
+    console.log("✅ Database connected");
+  } catch (err) {
+    console.error("❌ DB connection failed:", err.message);
+    process.exit(1);
   }
 };
 // Run migrations
@@ -116,7 +116,6 @@ const seedData = async () => {
 // Main initialization function
 const initDB = async () => {
   await connectDB();
-  await sequelize.authenticate();
   await runMigrations();
   await seedData();
 };
