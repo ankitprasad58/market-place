@@ -42,10 +42,10 @@ const register = async (req, res) => {
 
     // Create user
     const [result] = await sequelize.query(
-      "INSERT INTO users (name, email, password, phone, role) VALUES (?, ?, ?, ?, 'user')",
+      "INSERT INTO users (username, email, password, phone, role) VALUES (?, ?, ?, ?, 'user')",
       {
         replacements: [
-          name,
+          username,
           email.toLowerCase(),
           hashedPassword,
           phone || null,
