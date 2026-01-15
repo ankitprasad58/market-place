@@ -1,6 +1,5 @@
-const nodemailer = require("nodemailer");
 const PDFDocument = require("pdfkit");
-import { Resend } from "resend";
+const { Resend } = require("resend");
 
 class EmailService {
   constructor() {
